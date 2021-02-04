@@ -80,6 +80,11 @@ class Cart
         return $this->tax;
     }
 
+    public function getTaxes(): float
+    {
+        return $this->getTotal() - $this->getSubTotal();
+    }
+
     public function getCurrency(): Currency
     {
         return $this->currency;
@@ -91,11 +96,6 @@ class Cart
             $this->subTotal = $this->calculateSubTotal();
         }
         return $this->subTotal;
-    }
-
-    public function getTaxes(): float
-    {
-        return $this->getTotal() - $this->getSubTotal();
     }
 
     public function getTotal(): float
@@ -158,11 +158,12 @@ class Cart
         return $item;
     }
 
-    public function __call(string $method, array $arguments)
+    public function __call(string $method, array $arguments): ?string
     {
         if (strpos($method,'getFormatted') === 0) {
             $method = str_replace('Formatted', '', $method);
             return $this->getFormattedAmount($this->{$method}());
         }
+        return null;
     }
 }

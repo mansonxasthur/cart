@@ -15,11 +15,9 @@ class Tax implements TaxInterface
         $this->value = $value;
     }
 
-    public function apply(float $price): float
+    public function collect(float $price): float
     {
-        $price += ($this->getValue() / 100) * $price;
-
-        return $price;
+        return ($this->getValue() / 100) * $price;
     }
 
     public function getValue(): int
