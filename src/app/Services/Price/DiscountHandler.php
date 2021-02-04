@@ -21,13 +21,12 @@ class DiscountHandler implements PriceHandlerInterface
         $this->discountFactory = $discountFactory;
     }
 
-    public function handle(CartItem $item): CartItem
+    public function apply(CartItem $item): float
     {
-        if (!$this->discountSpecification->isSatisfiedBy($item)) return $item;
+        if (!$this->discountSpecification->isSatisfiedBy($item)) return 0;
 
         $discount = $this->makeDiscount($item->getDiscountType());
-        $discount->apply($item);
-        return $item;
+        return $discount->apply($item);
     }
 
     protected function makeDiscount(?string $discountType)

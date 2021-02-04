@@ -28,18 +28,19 @@ class OfferHandler implements PriceHandlerInterface
         $this->applicableForOfferSpecification = $applicableForOfferSpecification;
     }
 
-    public function handle(CartItem $item): CartItem
+    public function apply(CartItem $item): float
     {
+        $totalOffersAmount = 0;
         foreach ($this->offers as $offer) {
             $this->applicableForOfferSpecification->setOffer($offer);
             if (!$this->applicableForOfferSpecification->isSatisfiedBy($item) ||
                 !$this->cartHasOfferee($offer) ||
                 !$this->cartIsValidForOffer($offer)) continue;
 
-            $this->applyOffer($item, $offer);
+            $totalOffersAmount += $this->applyOffer($item, $offer);
         }
 
-        return $item;
+        return $totalOffersAmount;
     }
 
     protected function cartHasOfferee(Offer $offer): bool
@@ -55,16 +56,13 @@ class OfferHandler implements PriceHandlerInterface
         return $offeree->getQuantity() >= $offer->getQuantity();
     }
 
-    protected function applyOffer(CartItem $item, Offer $offer): CartItem
+    protected function applyOffer(CartItem $item, Offer $offer): float
     {
-
-        $item->setTotalPrice(
-            $this->getDiscountPrice($item, $offer, $discountType)
-        );
-
+        $discountPrice = $this->getDiscountPrice($item, $offer, $discountType);
         $item->setDiscountType($discountType);
         $item->setDiscount($offer->getDiscount()->getValue());
-        return $item;
+
+        return $discountPrice;
     }
 
     protected function getDiscountPrice(CartItem $item, Offer $offer, &$discountType = ''): float
@@ -77,18 +75,18 @@ class OfferHandler implements PriceHandlerInterface
                 $discountType = Discount::FIXED_PRICE;
                 return $this->calculateByFixedPrice($item, $offer);
             default:
-                return $item->getTotalPrice();
+                return 0;
         }
     }
 
     protected function calculateByPercentage(CartItem $item, Offer $offer): float
     {
-        return $item->getTotalPrice() - (($this->getDiscountAmount($item, $offer) / 100) * $item->getOriginalPrice());
+        return ($this->getDiscountAmount($item, $offer) / 100) * $item->getOriginalPrice();
     }
 
     protected function calculateByFixedPrice(CartItem $item, Offer $offer): float
     {
-        return $item->getTotalPrice() - $this->getDiscountAmount($item, $offer);
+        return $this->getDiscountAmount($item, $offer);
     }
 
     protected function getDiscountAmount(CartItem $item, Offer $offer): float

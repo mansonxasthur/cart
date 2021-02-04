@@ -8,5 +8,5 @@ use App\Models\CartItem;
 
 interface DiscountPriceCalculatorInterface
 {
-    public function apply(CartItem &$item);
+    public function apply(CartItem $item): float;
 }

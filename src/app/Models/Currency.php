@@ -13,13 +13,13 @@ class Currency
         self::EGP,
     ];
 
-    protected string $currency;
+    protected string $name;
     protected string $sign;
     protected float $exchange_rate;
 
-    public function __construct(string $currency, array $currencyInfo)
+    public function __construct(string $name, array $currencyInfo)
     {
-        $this->currency = $currency;
+        $this->name = $name;
         foreach ($currencyInfo as $attribute => $value) {
             if (property_exists($this, $attribute)) {
                 $this->{$attribute} = $value;
@@ -27,9 +27,9 @@ class Currency
         }
     }
 
-    public function getCurrency(): string
+    public function getName(): string
     {
-        return $this->currency;
+        return $this->name;
     }
 
     public function getSign(): string

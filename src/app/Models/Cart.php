@@ -27,11 +27,26 @@ class Cart
     protected Currency $currency;
     protected float $subTotal = 0;
     protected float $total = 0;
+    protected float $collectedTaxes = 0;
 
     public function __construct(TaxInterface $tax, Currency $currency)
     {
         $this->tax = $tax;
         $this->currency = $currency;
+    }
+
+    public function calculate()
+    {
+        $this->collectTaxes();
+        $this->setSubTotal(
+            $this->getOriginalPriceTotal()
+        );
+        $this->applyDiscountsAndOffers();
+        $this->setTotal(
+            $this->getSubTotal() +
+            $this->getCollectedTaxes() -
+            $this->getTotalDiscounts()
+        );
     }
 
     public function addCartItem(CartItem $item)
@@ -51,38 +66,9 @@ class Cart
         return $this->items[$key];
     }
 
-    public function getDiscounts(): array
-    {
-        if (empty($this->discounts)) {
-            foreach ($this->getItems() as $item) {
-                if ($discount = $item->getDiscount()) {
-                    $type = $item->getDiscountType();
-                    $sign = $type === Discount::PERCENTAGE ? '%' : '';
-
-                    if ($type === Discount::FIXED_PRICE) {
-                        $discount = $this->getFormattedAmount($discount);
-                    }
-                    $product = strtolower($item->getName());
-                    $differ = '-' . $this->getFormattedAmount(
-                        ($item->getOriginalPrice() * $item->getQuantity()) - $item->getTotalPrice()
-                        );
-
-                    $this->discounts[] = "{$discount}{$sign} off {$product}: {$differ}";
-                }
-            }
-        }
-
-        return $this->discounts;
-    }
-
     public function getTax(): TaxInterface
     {
         return $this->tax;
-    }
-
-    public function getTaxes(): float
-    {
-        return $this->getTotal() - $this->getSubTotal();
     }
 
     public function getCurrency(): Currency
@@ -92,17 +78,11 @@ class Cart
 
     public function getSubTotal(): float
     {
-        if (!$this->subTotal) {
-            $this->subTotal = $this->calculateSubTotal();
-        }
-        return $this->subTotal;
+        return $this->subTotal * $this->getCurrency()->getExchangeRate();
     }
 
     public function getTotal(): float
     {
-        if (!$this->total) {
-            $this->total = $this->tax->apply($this->getSubTotal());
-        }
         return $this->total;
     }
 
@@ -116,12 +96,32 @@ class Cart
         return $this->priceHandlers;
     }
 
+    public function getCollectedTaxes(): float
+    {
+        return $this->collectedTaxes * $this->getCurrency()->getExchangeRate();
+    }
+
+    public function getTotalDiscounts(): float
+    {
+        return collect($this->discounts)->sum('total') * $this->getCurrency()->getExchangeRate();
+    }
+
+    public function setSubTotal(float $subTotal): void
+    {
+        $this->subTotal = $subTotal;
+    }
+
+    public function setTotal(float $total): void
+    {
+        $this->total = $total;
+    }
+
     protected function hasItemKey(string $key): bool
     {
         return isset($this->items[$key]);
     }
 
-    protected function calculateSubTotal(): float
+    protected function applyDiscountsAndOffers(): float
     {
         $subTotal = 0;
 
@@ -131,17 +131,20 @@ class Cart
             $subTotal += $item->getTotalPrice();
         }
 
-        return $subTotal * $this->currency->getExchangeRate();
+        return $subTotal * $this->getCurrency()->getExchangeRate();
     }
 
     protected function getFormattedAmount(float $amount): string
     {
-        switch ($this->currency->getCurrency()) {
+        $amount = round($amount, 2);
+        $currency = $this->getCurrency();
+        $sign = $currency->getSign();
+        switch ($this->getCurrency()->getName()) {
             case Currency::EGP:
-                $amount .= ' ' . $this->currency->getSign();
+                $amount .= ' ' . $sign;
                 break;
             default:
-                $amount = $this->currency->getSign() . $amount;
+                $amount = $sign . $amount;
         }
 
         return $amount;
@@ -152,18 +155,69 @@ class Cart
         $priceHandlers = $this->getPriceHandlers();
         if (!$priceHandlers) return $item;
         foreach ($priceHandlers as $priceHandler) {
-            $priceHandler->handle($item);
+            $total = $priceHandler->apply($item);
+            if (!$total) continue;
+            $this->discounts[] = [
+                'total' => $total,
+                'type' => $item->getDiscountType(),
+                'discount' => $item->getDiscount(),
+                'name' => $item->getName()
+            ];
         }
 
         return $item;
     }
 
-    public function __call(string $method, array $arguments): ?string
+    protected function isTaxesCollected(): bool
+    {
+        return $this->collectedTaxes !== (float) 0;
+    }
+
+    protected function collectTaxes(): void
+    {
+        $this->collectedTaxes = $this->getTax()->collect(
+            $this->getOriginalPriceTotal()
+        );
+    }
+
+    protected function getOriginalPriceTotal(): float
+    {
+        $total = 0;
+
+        foreach ($this->getItems() as $item) {
+            $total += $item->getOriginalPrice() * $item->getQuantity();
+        }
+
+        return $total;
+    }
+
+    public function getDiscounts(): array
+    {
+        $formattedDiscounts= [];
+        foreach ($this->discounts as $discountItem) {
+            $type = $discountItem['type'];
+            $sign = $type === Discount::PERCENTAGE ? '%' : '';
+            $discountAmount = $discountItem['discount'];
+            if ($type === Discount::FIXED_PRICE) {
+                $discountAmount = $this->getFormattedAmount($discountAmount);
+            }
+            $product = strtolower($discountItem['name']);
+            $totalDiscount = $discountItem['total'];
+            $differ = '-' . $this->getFormattedAmount(
+                    $totalDiscount
+                );
+
+            $formattedDiscounts[] = "{$discountAmount}{$sign} off {$product}: {$differ}";
+        }
+
+        return $formattedDiscounts;
+    }
+
+    public function __call(string $method, array $arguments)
     {
         if (strpos($method,'getFormatted') === 0) {
             $method = str_replace('Formatted', '', $method);
             return $this->getFormattedAmount($this->{$method}());
         }
-        return null;
     }
 }

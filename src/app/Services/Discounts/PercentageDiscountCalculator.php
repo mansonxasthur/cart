@@ -5,21 +5,12 @@ namespace App\Services\Discounts;
 
 
 use App\Models\CartItem;
+use App\Services\Discounts\Contracts\DiscountPriceCalculatorInterface;
 
-class PercentageDiscountCalculator extends DiscountPriceCalculator
+class PercentageDiscountCalculator implements DiscountPriceCalculatorInterface
 {
-    public function apply(CartItem &$item)
+    public function apply(CartItem $item): float
     {
-        $item->setTotalPrice(
-            $this->calculatePrice($item)
-        );
-    }
-
-    protected function calculatePrice(CartItem $item): float
-    {
-        $price = $item->getTotalPrice();
-        $price -= ($item->getDiscount() / 100) * $price;
-
-        return $price;
+        return ($item->getDiscount() / 100) * $item->getTotalPrice();
     }
 }

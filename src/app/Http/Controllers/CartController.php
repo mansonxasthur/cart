@@ -85,7 +85,7 @@ class CartController extends Controller
             ),
             new OfferHandler($cart, $this->loadOffers(), new ApplicableForOfferSpecification())
         ]);
-
+        $cart->calculate();
         JsonResource::withoutWrapping();
         return new CartResource($cart);
     }

@@ -5,18 +5,12 @@ namespace App\Services\Discounts;
 
 
 use App\Models\CartItem;
+use App\Services\Discounts\Contracts\DiscountPriceCalculatorInterface;
 
-class FixedPriceDiscountCalculator extends DiscountPriceCalculator
+class FixedPriceDiscountCalculator implements DiscountPriceCalculatorInterface
 {
-    public function apply(CartItem &$item)
+    public function apply(CartItem $item): float
     {
-        $item->setTotalPrice(
-            $this->calculatePrice($item)
-        );
-    }
-
-    protected function calculatePrice(CartItem $item): float
-    {
-        return $item->getTotalPrice() - ($item->getDiscount() * $item->getQuantity());
+        return $item->getDiscount() * $item->getQuantity();
     }
 }
