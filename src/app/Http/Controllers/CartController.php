@@ -27,7 +27,6 @@ class CartController extends Controller
 {
     protected array $currencies;
     protected ValidCurrencySpecification $validCurrencySpecification;
-    protected ProductHasDiscountSpecification $hasDiscountSpecification;
     protected Collection $products;
     protected ProductExistsSpecification $productExistsSpecification;
 
@@ -35,7 +34,6 @@ class CartController extends Controller
     {
         $this->currencies = config('currencies');
         $this->validCurrencySpecification = new ValidCurrencySpecification();
-        $this->hasDiscountSpecification = new ProductHasDiscountSpecification();
         $this->products = collect(config('products'));
         $this->productExistsSpecification = new ProductExistsSpecification($this->products->pluck('name')
                                                                                           ->all());

@@ -56,7 +56,6 @@ class Cart
         if (empty($this->discounts)) {
             foreach ($this->getItems() as $item) {
                 if ($discount = $item->getDiscount()) {
-                    $message = '';
                     $type = $item->getDiscountType();
                     $sign = $type === Discount::PERCENTAGE ? '%' : '';
 
