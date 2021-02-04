@@ -1,0 +1,31 @@
+version: '3'
+
+services:
+  cart:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    volumes:
+      - ./src:/var/www/html
+      - ./app/script/post-build.sh:/usr/local/bin/post-build.sh
+    command: /bin/sh -c post-build.sh
+    ports:
+      - 80:80
+    networks:
+      - cart-network
+
+  composer:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    volumes:
+      - ./src:/var/www/html
+    working_dir: /var/www/html
+    entrypoint: composer
+    depends_on:
+      - cart
+    networks:
+      - cart-network
+
+networks:
+  cart-network:
