@@ -14,83 +14,87 @@ use App\Specifications\ApplicableForOfferSpecification;
 class OfferHandler implements PriceHandlerInterface
 {
     protected Cart $cart;
-    protected Offer $offer;
+    /**
+     * @var Offer[]
+     */
+    protected array $offers;
     protected ApplicableForOfferSpecification $applicableForOfferSpecification;
     protected ?CartItem $offeree = null;
 
-    public function __construct(Cart $cart, Offer $offer, ApplicableForOfferSpecification $applicableForOfferSpecification)
+    public function __construct(Cart $cart, array $offers, ApplicableForOfferSpecification $applicableForOfferSpecification)
     {
-
         $this->cart = $cart;
-        $this->offer = $offer;
+        $this->offers = $offers;
         $this->applicableForOfferSpecification = $applicableForOfferSpecification;
     }
 
     public function handle(CartItem $item): CartItem
     {
-        if (!$this->applicableForOfferSpecification->isSatisfiedBy($item) ||
-            !$this->cartHasOfferee() ||
-            !$this->cartIsValidForOffer()) return $item;
+        foreach ($this->offers as $offer) {
+            $this->applicableForOfferSpecification->setOffer($offer);
+            if (!$this->applicableForOfferSpecification->isSatisfiedBy($item) ||
+                !$this->cartHasOfferee($offer) ||
+                !$this->cartIsValidForOffer($offer)) continue;
 
-        return $this->applyOffer($item);
-    }
-
-    protected function cartHasOfferee(): bool
-    {
-        if (!$this->offeree) {
-            $this->offeree = $this->cart->getItem($this->offer->getOfferee());
+            $this->applyOffer($item, $offer);
         }
-        return $this->offeree !== null;
-    }
 
-    protected function cartIsValidForOffer(): bool
-    {
-        if (!$this->offeree) {
-            $this->offeree = $this->cart->getItem($this->offer->getOfferee());
-        }
-        return $this->offeree->getQuantity() >= $this->offer->getQuantity();
-    }
-
-    protected function applyOffer(CartItem $item): CartItem
-    {
-
-        $item->setTotalPrice(
-            $this->getDiscountPrice($item, $discountType)
-        );
-
-        $item->setDiscountType($discountType);
-        $item->setDiscount($this->offer->getDiscount()->getValue());
         return $item;
     }
 
-    protected function getDiscountPrice(CartItem $item, &$discountType = ''): float
+    protected function cartHasOfferee(Offer $offer): bool
     {
-        switch ($this->offer->getDiscount()->getType()) {
+        return $this->cart->getItem($offer->getOfferee()) !== null;
+    }
+
+    protected function cartIsValidForOffer(Offer $offer): bool
+    {
+        $offeree = $this->cart->getItem($offer->getOfferee());
+        if (!$offeree) return false;
+
+        return $offeree->getQuantity() >= $offer->getQuantity();
+    }
+
+    protected function applyOffer(CartItem $item, Offer $offer): CartItem
+    {
+
+        $item->setTotalPrice(
+            $this->getDiscountPrice($item, $offer, $discountType)
+        );
+
+        $item->setDiscountType($discountType);
+        $item->setDiscount($offer->getDiscount()->getValue());
+        return $item;
+    }
+
+    protected function getDiscountPrice(CartItem $item, Offer $offer, &$discountType = ''): float
+    {
+        switch ($offer->getDiscount()->getType()) {
             case Discount::PERCENTAGE:
                 $discountType = Discount::PERCENTAGE;
-                return $this->calculateByPercentage($item);
+                return $this->calculateByPercentage($item, $offer);
             case Discount::FIXED_PRICE:
                 $discountType = Discount::FIXED_PRICE;
-                return $this->calculateByFixedPrice($item);
+                return $this->calculateByFixedPrice($item, $offer);
             default:
                 return $item->getTotalPrice();
         }
     }
 
-    protected function calculateByPercentage(CartItem $item): float
+    protected function calculateByPercentage(CartItem $item, Offer $offer): float
     {
-        return $item->getTotalPrice() - (($this->getDiscountAmount($item) / 100) * $item->getOriginalPrice());
+        return $item->getTotalPrice() - (($this->getDiscountAmount($item, $offer) / 100) * $item->getOriginalPrice());
     }
 
-    protected function calculateByFixedPrice(CartItem $item): float
+    protected function calculateByFixedPrice(CartItem $item, Offer $offer): float
     {
-        return $item->getTotalPrice() - $this->getDiscountAmount($item);
+        return $item->getTotalPrice() - $this->getDiscountAmount($item, $offer);
     }
 
-    protected function getDiscountAmount(CartItem $item): float
+    protected function getDiscountAmount(CartItem $item, Offer $offer): float
     {
-        $applicableDiscount = intdiv($this->offeree->getQuantity(), $this->offer->getQuantity());
+        $applicableDiscount = intdiv($this->cart->getItem($offer->getOfferee())->getQuantity(), $offer->getQuantity());
         $discountCount = min($applicableDiscount, $item->getQuantity());
-        return $discountCount  * $this->offer->getDiscount()->getValue();
+        return $discountCount  * $offer->getDiscount()->getValue();
     }
 }

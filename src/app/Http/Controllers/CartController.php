@@ -37,7 +37,8 @@ class CartController extends Controller
         $this->validCurrencySpecification = new ValidCurrencySpecification();
         $this->hasDiscountSpecification = new ProductHasDiscountSpecification();
         $this->products = collect(config('products'));
-        $this->productExistsSpecification = new ProductExistsSpecification($this->products->pluck('name')->all());
+        $this->productExistsSpecification = new ProductExistsSpecification($this->products->pluck('name')
+                                                                                          ->all());
     }
 
     /**
@@ -49,10 +50,14 @@ class CartController extends Controller
     public function checkout(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'products' => ['required', 'array'],
-            'products.*.name' => ['required', 'string'],
-            'products.*.quantity' => ['required', 'numeric'],
-            'currency' => ['required', 'string'],
+            'products'            => ['required',
+                                      'array'],
+            'products.*.name'     => ['required',
+                                      'string'],
+            'products.*.quantity' => ['required',
+                                      'numeric', 'min:1'],
+            'currency'            => ['required',
+                                      'string'],
         ]);
 
         if ($validator->fails()) {
@@ -67,23 +72,31 @@ class CartController extends Controller
         $cart = new Cart($tax, $currency);
         $products = $request->get('products');
 
-        foreach ($products as $product)
-        {
+        foreach ($products as $product) {
             if (!$this->productExistsSpecification->isSatisfiedBy($product['name'])) throw new ProductNotFoundException($product['name']);
             $quantity = $product['quantity'];
-            $product = $this->products->where('name', $product['name'])->first();
+            $product = $this->products->where('name', $product['name'])
+                                      ->first();
             $cart->addCartItem(new CartItem($product, $quantity));
         }
-        $offer = new Offer('T-shirt', 'Jacket', new Discount(5, Discount::FIXED_PRICE), 2);
+
         $cart->setPriceHandlers([
             new DiscountHandler(
                 new ProductHasDiscountSpecification(),
                 new DiscountCalculatorFactory()
             ),
-            new OfferHandler($cart, $offer, new ApplicableForOfferSpecification($offer))
+            new OfferHandler($cart, $this->loadOffers(), new ApplicableForOfferSpecification())
         ]);
 
         JsonResource::withoutWrapping();
         return new CartResource($cart);
+    }
+
+    protected function loadOffers(): array
+    {
+        return [
+            new Offer('T-shirt', 'Jacket', new Discount(50, Discount::PERCENTAGE), 2),
+            new Offer('Shoes', 'Pants', new Discount(8, Discount::FIXED_PRICE), 2),
+        ];
     }
 }
