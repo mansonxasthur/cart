@@ -36,23 +36,11 @@ RUN docker-php-ext-configure gd --with-freetype=/usr/include/ --with-jpeg=/usr/i
     pcntl && \
     docker-php-ext-enable opcache
 
-# Install Redis
-RUN pecl install redis /dev/null && \
-    docker-php-ext-enable redis
-
-# Install Mongodb
-RUN pecl install mongodb /dev/null && \
-    docker-php-ext-enable mongodb
-
 # Install Composer
 ENV COMPOSER_ALLOW_SUPERUSER 1
 RUN curl -sS https://getcomposer.org/installer | php && \
     mv composer.phar /usr/local/bin/composer && \
-    composer self-update --clean-backups
-
-# Install Swoole
-RUN pecl install swoole > /dev/null && \
-    docker-php-ext-enable swoole
+    composer self-update --clean-backups --2
 
 # Set default work directory
 WORKDIR /var/www/html
