@@ -68,7 +68,7 @@ class CartController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json($validator->errors());
+            return response()->json($validator->errors(), 422);
         }
 
         $currency = strtoupper($request->get('currency'));
