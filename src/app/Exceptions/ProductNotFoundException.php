@@ -9,9 +9,8 @@ use Throwable;
 
 class ProductNotFoundException extends \Exception
 {
-    public function __construct($productName, $code = 404, Throwable $previous = null)
+    public function __construct($message = "Product not found.", $code = 404, Throwable $previous = null)
     {
-        $message = "Product with name {$productName} not found.";
         parent::__construct($message, $code, $previous);
     }
 
