@@ -4,18 +4,22 @@
 namespace App\Specifications;
 
 
+use App\Models\Product;
+use Illuminate\Support\Collection;
 use App\Specifications\Contracts\ProductExistSpecificationInterface;
 
 class ProductExistsSpecification implements ProductExistSpecificationInterface
 {
-    protected array $productNames;
+    protected Collection $products;
 
-    public function __construct(array $productNames)
+    public function __construct(Collection $products)
     {
-        $this->productNames = $productNames;
+        $this->products = $products;
     }
+
     public function isSatisfiedBy(string $productName): bool
     {
-        return in_array($productName, $this->productNames);
+        return $this->products->filter(fn(Product $product) => $product->getName() === $productName)
+                              ->isNotEmpty();
     }
 }

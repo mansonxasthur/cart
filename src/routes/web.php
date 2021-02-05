@@ -13,4 +13,4 @@
 |
 */
 
-$router->post('/checkout', 'CartController@checkout');
+$router->post('/cart', 'CartController@cart');

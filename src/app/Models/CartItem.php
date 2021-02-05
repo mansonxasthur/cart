@@ -13,13 +13,13 @@ class CartItem
     protected ?string $discountType;
     protected float $totalPrice = 0;
 
-    public function __construct(array $product, int $quantity)
+    public function __construct(Product $product, int $quantity)
     {
         $this->quantity = $quantity;
-        $this->name = $product['name'];
-        $this->originalPrice = $product['price'];
-        $this->discount = $product['discount'];
-        $this->discountType = $product['discount_type'];
+        $this->name = $product->getName();
+        $this->originalPrice = $product->getPrice();
+        $this->discount = $product->getDiscount();
+        $this->discountType = $product->getDiscountType();
     }
 
     public function getName(): string

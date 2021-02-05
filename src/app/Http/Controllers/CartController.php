@@ -10,6 +10,7 @@ use App\Models\CartItem;
 use App\Models\Currency;
 use App\Models\Discount;
 use App\Models\Offer;
+use App\Models\Product;
 use App\Models\Tax;
 use App\Services\Discounts\Factories\DiscountCalculatorFactory;
 use App\Services\Price\DiscountHandler;
@@ -25,18 +26,21 @@ use Illuminate\Support\Facades\Validator;
 
 class CartController extends Controller
 {
-    protected array $currencies;
+    protected Collection $currencies;
     protected ValidCurrencySpecification $validCurrencySpecification;
     protected Collection $products;
     protected ProductExistsSpecification $productExistsSpecification;
 
     public function __construct()
     {
-        $this->currencies = config('currencies');
+        $this->currencies = collect(config('currencies'))->map(function($currencyInfo, $currencyName) {
+            return new Currency($currencyName, $currencyInfo);
+        });
+        $this->products = collect(config('products'))->map(function($product) {
+            return new Product($product);
+        });
         $this->validCurrencySpecification = new ValidCurrencySpecification();
-        $this->products = collect(config('products'));
-        $this->productExistsSpecification = new ProductExistsSpecification($this->products->pluck('name')
-                                                                                          ->all());
+        $this->productExistsSpecification = new ProductExistsSpecification($this->products);
     }
 
     /**
@@ -45,7 +49,7 @@ class CartController extends Controller
      * @return CartResource|\Illuminate\Http\JsonResponse
      * @throws \Exception
      */
-    public function checkout(Request $request)
+    public function cart(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'products'            => ['required',
@@ -65,16 +69,18 @@ class CartController extends Controller
         $currency = strtoupper($request->get('currency'));
 
         if (!$this->validCurrencySpecification->isSatisfiedBy($currency)) throw new InvalidCurrencyException;
-        $currency = new Currency($currency, $this->currencies[$currency]);
+        $currency = $this->currencies->get($currency);
+
         $tax = new Tax(14);
         $cart = new Cart($tax, $currency);
-        $products = $request->get('products');
+        $cartProducts = $request->get('products');
 
-        foreach ($products as $product) {
-            if (!$this->productExistsSpecification->isSatisfiedBy($product['name'])) throw new ProductNotFoundException($product['name']);
-            $quantity = $product['quantity'];
-            $product = $this->products->where('name', $product['name'])
+        foreach ($cartProducts as $cartProduct) {
+            if (!$this->productExistsSpecification->isSatisfiedBy($cartProduct['name'])) throw new ProductNotFoundException($cartProduct['name']);
+            $quantity = $cartProduct['quantity'];
+            $product = $this->products->filter(fn(Product $product) => $product->getName() === $cartProduct['name'])
                                       ->first();
+
             $cart->addCartItem(new CartItem($product, $quantity));
         }
 
