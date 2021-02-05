@@ -90,6 +90,7 @@ class OfferHandler implements PriceHandlerInterface
     protected function getDiscountAmount(CartItem $item, Offer $offer): float
     {
         $applicableDiscount = intdiv($this->cart->getItem($offer->getOfferee())->getQuantity(), $offer->getQuantity());
+        if ($offer->getOfferee() === $offer->getOfferable()) $applicableDiscount--;
         $discountCount = min($applicableDiscount, $item->getQuantity());
         return $discountCount  * $offer->getDiscount()->getValue();
     }
