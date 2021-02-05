@@ -73,18 +73,24 @@ class CartController extends Controller
 
         $currency = strtoupper($request->get('currency'));
 
-        if (!$this->validCurrencySpecification->isSatisfiedBy($currency)) throw new InvalidCurrencyException;
+        $this->checkIfCurrencyIsValid($currency);
         $currency = $this->currencies->get($currency);
 
         $tax = new Tax(14);
         $cart = new Cart($tax, $currency);
-        $cartProducts = $request->get('products');
 
+        $cartProducts = $request->get('products');
         foreach ($cartProducts as $cartProduct) {
-            if (!$this->productExistsSpecification->isSatisfiedBy($cartProduct['name'])) throw new ProductNotFoundException();
+            $this->checkIfProductExists($cartProduct['name']);
+
             $quantity = $cartProduct['quantity'];
-            $product = $this->products->filter(fn(Product $product) => $product->getName() === $cartProduct['name'])
-                                      ->first();
+            $product = $this->getProduct($cartProduct['name']);
+
+            if ($item = $cart->getItem($product->getName())) {
+                $item->setQuantity($item->getQuantity() + $quantity);
+                $cart->addCartItem($item);
+                continue;
+            }
 
             $cart->addCartItem(new CartItem($product, $quantity));
         }
@@ -97,7 +103,34 @@ class CartController extends Controller
             new OfferHandler($cart, $this->offers, new ApplicableForOfferSpecification())
         ]);
         $cart->calculate();
+        
         JsonResource::withoutWrapping();
         return new CartResource($cart);
+    }
+
+    /**
+     * @param $cartProductName
+     *
+     * @throws ProductNotFoundException
+     */
+    protected function checkIfProductExists(string $cartProductName): void
+    {
+        if (!$this->productExistsSpecification->isSatisfiedBy($cartProductName)) throw new ProductNotFoundException();
+    }
+
+    /**
+     * @param string $currency
+     *
+     * @throws InvalidCurrencyException
+     */
+    protected function checkIfCurrencyIsValid(string $currency): void
+    {
+        if (!$this->validCurrencySpecification->isSatisfiedBy($currency)) throw new InvalidCurrencyException;
+    }
+
+    protected function getProduct(string $cartProductName): Product
+    {
+        return $this->products->filter(fn(Product $product) => $product->getName() === $cartProductName)
+                       ->first();
     }
 }
