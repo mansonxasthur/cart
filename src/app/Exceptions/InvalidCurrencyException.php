@@ -10,7 +10,7 @@ use Throwable;
 
 class InvalidCurrencyException extends \Exception
 {
-    public function __construct($code = 422, Throwable $previous = null)
+    public function __construct($code = 400, Throwable $previous = null)
     {
         $message = 'The selected currency is invalid. Valid currencies: ' . implode(', ', Currency::VALID_CURRENCIES) . '.';
         parent::__construct($message, $code, $previous);
