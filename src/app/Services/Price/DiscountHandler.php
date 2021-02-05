@@ -8,14 +8,14 @@ use App\Models\CartItem;
 use App\Models\Discount;
 use App\Services\Discounts\Factories\Contracts\DiscountCalculatorFactoryInterface;
 use App\Services\Price\Contracts\PriceHandlerInterface;
-use App\Specifications\ProductHasDiscountSpecification;
+use App\Specifications\Contracts\ProductSpecificationInterface;
 
 class DiscountHandler implements PriceHandlerInterface
 {
-    protected ProductHasDiscountSpecification $discountSpecification;
+    protected ProductSpecificationInterface $discountSpecification;
     protected DiscountCalculatorFactoryInterface $discountFactory;
 
-    public function __construct(ProductHasDiscountSpecification $discountSpecification, DiscountCalculatorFactoryInterface $discountFactory)
+    public function __construct(ProductSpecificationInterface $discountSpecification, DiscountCalculatorFactoryInterface $discountFactory)
     {
         $this->discountSpecification = $discountSpecification;
         $this->discountFactory = $discountFactory;
