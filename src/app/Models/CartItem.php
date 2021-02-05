@@ -56,6 +56,11 @@ class CartItem
         return $this->totalPrice;
     }
 
+    public function setQuantity(int $quantity): void
+    {
+        $this->quantity = $quantity;
+    }
+
     public function setTotalPrice(float $totalPrice): void
     {
         $this->totalPrice = $totalPrice;
