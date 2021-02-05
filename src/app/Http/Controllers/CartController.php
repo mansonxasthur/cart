@@ -81,7 +81,7 @@ class CartController extends Controller
         $cartProducts = $request->get('products');
 
         foreach ($cartProducts as $cartProduct) {
-            if (!$this->productExistsSpecification->isSatisfiedBy($cartProduct['name'])) throw new ProductNotFoundException($cartProduct['name']);
+            if (!$this->productExistsSpecification->isSatisfiedBy($cartProduct['name'])) throw new ProductNotFoundException();
             $quantity = $cartProduct['quantity'];
             $product = $this->products->filter(fn(Product $product) => $product->getName() === $cartProduct['name'])
                                       ->first();
