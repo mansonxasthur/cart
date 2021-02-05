@@ -8,6 +8,13 @@ use App\Models\Contracts\TaxInterface;
 use App\Services\Price\Contracts\PriceHandlerInterface;
 use App\Traits\CanHashString;
 
+/**
+ * Class Cart
+ * @package App\Models
+ * @method string getFormattedSubTotal()
+ * @method string getFormattedCollectedTaxes()
+ * @method string getFormattedTotal()
+ */
 class Cart
 {
     use CanHashString;
