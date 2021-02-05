@@ -27,17 +27,21 @@ use Illuminate\Support\Facades\Validator;
 class CartController extends Controller
 {
     protected Collection $currencies;
-    protected ValidCurrencySpecification $validCurrencySpecification;
     protected Collection $products;
+    protected Collection $offers;
+    protected ValidCurrencySpecification $validCurrencySpecification;
     protected ProductExistsSpecification $productExistsSpecification;
 
     public function __construct()
     {
-        $this->currencies = collect(config('currencies'))->map(function($currencyInfo, $currencyName) {
+        $this->currencies = collect(config('currencies'))->map(function ($currencyInfo, $currencyName) {
             return new Currency($currencyName, $currencyInfo);
         });
-        $this->products = collect(config('products'))->map(function($product) {
+        $this->products = collect(config('products'))->map(function ($product) {
             return new Product($product);
+        });
+        $this->offers = collect(config('offers'))->map(function ($offer) {
+            return new Offer($offer['offeree'], $offer['offerable'], new Discount($offer['discount_value'], $offer['discount_type']), $offer['quantity']);
         });
         $this->validCurrencySpecification = new ValidCurrencySpecification();
         $this->productExistsSpecification = new ProductExistsSpecification($this->products);
@@ -57,7 +61,8 @@ class CartController extends Controller
             'products.*.name'     => ['required',
                                       'string'],
             'products.*.quantity' => ['required',
-                                      'numeric', 'min:1'],
+                                      'numeric',
+                                      'min:1'],
             'currency'            => ['required',
                                       'string'],
         ]);
@@ -89,18 +94,10 @@ class CartController extends Controller
                 new ProductHasDiscountSpecification(),
                 new DiscountCalculatorFactory()
             ),
-            new OfferHandler($cart, $this->loadOffers(), new ApplicableForOfferSpecification())
+            new OfferHandler($cart, $this->offers, new ApplicableForOfferSpecification())
         ]);
         $cart->calculate();
         JsonResource::withoutWrapping();
         return new CartResource($cart);
-    }
-
-    protected function loadOffers(): array
-    {
-        return [
-            new Offer('T-shirt', 'Jacket', new Discount(50, Discount::PERCENTAGE), 2),
-            new Offer('Shoes', 'Pants', new Discount(8, Discount::FIXED_PRICE), 2),
-        ];
     }
 }

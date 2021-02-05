@@ -10,18 +10,16 @@ use App\Models\Discount;
 use App\Models\Offer;
 use App\Services\Price\Contracts\PriceHandlerInterface;
 use App\Specifications\ApplicableForOfferSpecification;
+use Illuminate\Support\Collection;
 
 class OfferHandler implements PriceHandlerInterface
 {
     protected Cart $cart;
-    /**
-     * @var Offer[]
-     */
-    protected array $offers;
+    protected Collection $offers;
     protected ApplicableForOfferSpecification $applicableForOfferSpecification;
     protected ?CartItem $offeree = null;
 
-    public function __construct(Cart $cart, array $offers, ApplicableForOfferSpecification $applicableForOfferSpecification)
+    public function __construct(Cart $cart, Collection $offers, ApplicableForOfferSpecification $applicableForOfferSpecification)
     {
         $this->cart = $cart;
         $this->offers = $offers;

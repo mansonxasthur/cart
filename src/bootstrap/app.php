@@ -61,6 +61,7 @@ $app->singleton(
 
 $app->configure('currencies');
 $app->configure('products');
+$app->configure('offers');
 
 /*
 |--------------------------------------------------------------------------
