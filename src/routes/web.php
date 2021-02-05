@@ -14,3 +14,4 @@
 */
 
 $router->post('/cart', 'CartController@cart');
+$router->get('/products', 'ProductsController@index');
